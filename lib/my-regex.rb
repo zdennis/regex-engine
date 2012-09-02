@@ -22,7 +22,7 @@ class MyRegex
       pattern_index = 0
       str_index = 0
       loop do
-        if str[0] == @pattern[pattern_index]
+        if str[str_index] == @pattern[pattern_index]
           str_index += 1
           pattern_index += 1
           return true if pattern_index == @pattern.length

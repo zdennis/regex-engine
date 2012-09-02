@@ -9,4 +9,10 @@ describe "regex matching" do
     it { should have_match("a") }
   end
 
+  describe "/abc/" do
+    let(:pattern){ "/abc/" }
+    it { should have_match("abc") }
+  end
+
+
 end
