@@ -27,7 +27,8 @@ class MyRegex
           pattern_index += 1
           return true if pattern_index == @pattern.length
         else
-          return false
+          str_index += 1
+          return false if str_index == str.length
         end
       end
       str.each_char

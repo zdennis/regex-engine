@@ -12,6 +12,7 @@ describe "regex matching" do
   describe "/abc/" do
     let(:pattern){ "/abc/" }
     it { should have_match("abc") }
+    it { should have_match("zabc") }
   end
 
 
