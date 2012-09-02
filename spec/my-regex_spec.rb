@@ -15,5 +15,12 @@ describe "regex matching" do
     it { should have_match("zabc") }
   end
 
+  describe "/a.c/" do
+    let(:pattern){ "/a.c/" }
+    it { should have_match("abc") }
+    it { should have_match("zabc") }
+    it { should have_match("zadcasdf") }
+  end
+
 
 end
