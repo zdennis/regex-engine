@@ -7,12 +7,18 @@ describe "regex matching" do
   describe "/a/" do
     let(:pattern){ "/a/" }
     it { should have_match("a") }
+
+    it { should_not have_match("b") }
   end
 
   describe "/abc/" do
     let(:pattern){ "/abc/" }
     it { should have_match("abc") }
     it { should have_match("zabc") }
+
+    it { should_not have_match("bca") }
+    it { should_not have_match("cba") }
+    it { should_not have_match("ab.") }
   end
 
   describe "/a.c/" do
@@ -20,7 +26,13 @@ describe "regex matching" do
     it { should have_match("abc") }
     it { should have_match("zabc") }
     it { should have_match("zadcasdf") }
+
+    it { should_not have_match("cbc") }
+    it { should_not have_match("zabd") }
+    it { should_not have_match("zadbca") }
   end
+
+
 
 
 end
