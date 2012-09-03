@@ -13,53 +13,70 @@ class MyRegex
   end
 
   class Acceptor
-    # Types = {
-    #   "."       => Any,
-    #   "default" => Acceptor
-    # }
-
     def initialize(pattern)
       @pattern = pattern
-
-      # @acceptors = []
-      # str = ""
-      # type = Types["default"]
-      # @pattern.each_char do |ch|
-      #   if t=Types[ch]
-      #     @acceptors << type.new(str)
-      #     str = ""
-      #     type = t
-      #   else
-      #     str << ch
-      #   end
-      # end
+      puts "pattern length: #{@pattern.length}"
     end
 
     def accept(str)
-      # @acceptors.all? do |acceptor|
-      #   acceptor.accept(str)
-      # end
       pattern_index = 0
       str_index = 0
+      backtracks = []      
+      is_modifier = false
+
+      printf "%12s | %12s | %12s | %12s |\n", "str_index", "current_str", "pidx", "current_ptn"
       loop do
         current_str = str[str_index]
         current_ptn = @pattern[pattern_index]
-        #puts "current #{current_str} at #{str_index} pattern #{current_ptn} at #{pattern_index}"
+        prev_str    = str[str_index - 1] if str_index > 0
+        prev_ptn    = @pattern[pattern_index-1] if pattern_index > 0
+        printf "%12s | %12s | %12s | %12s | ", str_index, current_str, pattern_index, current_ptn
+        debug = ""
+
         if current_str == current_ptn || current_ptn == "."
+          debug = "0"
           str_index += 1
           pattern_index += 1
-          return true if pattern_index == @pattern.length
-        elsif str_index == 0
+        elsif is_modifier && current_ptn == "*"
+          if current_str == prev_str || prev_str == "."
+            debug = "4.1"
+            str_index += 1
+          else
+            debug = "4.2 - #{str_index}"
+            backtracks << str_index
+            is_modifier = false
+            pattern_index += 1
+          end
+        elsif is_modifier
+          debug = "1"
+          is_modifier = false
+          pattern_index += 1
+        elsif !is_modifier && current_ptn == "*"
+          debug = "2"
           str_index += 1
-          return false if str_index == str.length
+          is_modifier = true
+        elsif str_index == 0
+          debug = "3"
+          str_index += 1
+        elsif backtracks.any?
+          debug = "5"          
+          str_index = backtracks.pop
+          pattern_index += 1
         else
-          return false
+          debug = "6 pidl = #{@pattern.length}"
+          str_index += 1
+        end
+
+        puts debug
+
+        if str_index == str.length
+          if pattern_index >= @pattern.length
+            return true
+          else
+            return false
+          end
         end
       end
-      str.each_char
-      # @acceptors.detect do |acceptor|
-      #   acceptor.accept(str)
-      # end    
     end
   end
 
