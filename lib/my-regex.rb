@@ -63,18 +63,17 @@ class MyRegex
           str_index = backtracks.pop
           pattern_index += 1
         else
-          debug = "6 pidl = #{@pattern.length}"
+          pattern_index = 0
+          debug = "6"
           str_index += 1
         end
 
         puts debug
 
-        if str_index == str.length
-          if pattern_index >= @pattern.length
-            return true
-          else
-            return false
-          end
+        if pattern_index >= @pattern.length
+          return true
+        elsif str_index == str.length
+          return false
         end
       end
     end
