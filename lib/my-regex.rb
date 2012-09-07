@@ -9,75 +9,114 @@ class MyRegex
   end
 
   def has_match?(str)
-    @engine.accept(str)
+    @engine.accept?(str)
   end
 
   class Acceptor
-    def initialize(pattern)
-      @pattern = pattern
-      puts "pattern length: #{@pattern.length}"
+    def is_modifier?(ch)
+      ch == "."
     end
 
-    def accept(str)
-      pattern_index = 0
-      str_index = 0
-      backtracks = []      
-      is_modifier = false
+    def initialize(pattern)
+      pindex = 0
+      @acceptors = []
+      current_acceptor_type = SimpleCharacterAcceptor
 
-      printf "%12s | %12s | %12s | %12s |\n", "str_index", "current_str", "pidx", "current_ptn"
+      current_pattern = ""
+
+      # a.c
       loop do
-        current_str = str[str_index]
-        current_ptn = @pattern[pattern_index]
-        prev_str    = str[str_index - 1] if str_index > 0
-        prev_ptn    = @pattern[pattern_index-1] if pattern_index > 0
-        next_ptn    = @pattern[pattern_index+1] unless pattern_index > @pattern.length
-        printf "%12s | %12s | %12s | %12s | ", str_index, current_str, pattern_index, current_ptn
-        debug = ""
+        puts "START: #{pattern[pindex].inspect}  #{current_pattern.inspect}"
+        current_ch = pattern[pindex]
+        next_ch    = pattern[pindex+1]
 
-        if current_str == current_ptn || current_ptn == "."
-          debug = "0"
-          str_index += 1
-          pattern_index += 1
-        elsif is_modifier && current_ptn == "*"
-          if current_str == prev_str || prev_str == "."
-            debug = "4.1"
-            str_index += 1
-          else
-            debug = "4.2 - #{str_index}"
-            backtracks << str_index
-            is_modifier = false
-            pattern_index += 1
-          end
-        elsif is_modifier
-          debug = "1"
-          is_modifier = false
-          pattern_index += 1
-        elsif !is_modifier && current_ptn == "*"
-          debug = "2"
-          str_index += 1
-          is_modifier = true
-        elsif str_index == 0
-          debug = "3"
-          str_index += 1
-        elsif backtracks.any?
-          debug = "5"          
-          str_index = backtracks.pop
-          pattern_index += 1
+        if is_modifier?(current_ch)
+          @acceptors << current_acceptor_type.new(current_pattern)
+
+          next_index = pindex + 1          
+          pattern = pattern[next_index..-1]
+          current_pattern = ""
+          pindex  = 0
+
+          @acceptors << AnyCharacterAcceptor.new(current_ch)
         else
-          pattern_index = 0
-          debug = "6"
-          str_index += 1
+          current_pattern << current_ch
+          pindex += 1          
+        end
+        break if pattern.length == 0 || (pindex == pattern.length)
+      end
+
+      @acceptors << current_acceptor_type.new(current_pattern)
+
+      puts @acceptors.inspect
+    end
+
+    def accept?(str)
+      cindex = 0
+      sindex = 0
+      loop do
+        str2match = str[cindex..-1]
+
+        matched = @acceptors.all? do |a| 
+          str4match = str2match[sindex..-1]
+          a.accept?(str4match).tap do |value|
+            sindex += a.matched_length if value
+          end
+        end
+        return true if matched
+
+        cindex += 1        
+        return false if cindex == str.length
+      end
+    end
+
+  end
+
+  class SimpleCharacterAcceptor
+    attr_reader :matched_at, :matched_length
+
+    def initialize(pattern)
+      @pattern = pattern
+    end
+
+    def accept?(str)
+      return nil unless str
+      
+      sindex = 0
+      pindex = 0
+      loop do
+        string_ch  = str[sindex]
+        pattern_ch = @pattern[pindex]
+
+        if string_ch == pattern_ch
+          @matched_at = sindex      
+          @matched_length = sindex + 1
+          sindex += 1
+          pindex += 1
+        else
+          return false          
         end
 
-        puts debug
-
-        if pattern_index >= @pattern.length
+        if pindex >= @pattern.length
           return true
-        elsif [".", "*"].include?(next_ptn)
-          # the next part of the pattern is a modifier there's a chance of matching
-        elsif str_index == str.length
+        elsif sindex == str.length 
           return false
         end
+      end
+    end
+  end
+
+  class AnyCharacterAcceptor
+    attr_reader :matched_at, :matched_length
+
+    def initialize(pattern)
+      @pattern = pattern
+    end
+
+    def accept?(str)
+      (str.length > 0).tap do
+        @matched_at = 0
+        @matched_length = 1
       end
     end
   end
