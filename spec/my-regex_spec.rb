@@ -32,14 +32,18 @@ describe "regex matching" do
     it { should_not have_match("zadbca") }
   end
 
-  describe "/a.*c/" do
-    let(:pattern){ "/a.*c/" }
-    it { should have_match("abbc") }
-    it { should have_match("zabdddddc") }
-    it { should have_match("zadcasdf") }
-    it { should have_match("zacasdfacg") }
+  describe "0 or more occurrences" do
+    describe "/a.*c/" do
+      let(:pattern){ "/a.*c/" }
+      it { should have_match("ac") }
+      it { should have_match("abc") }
+      it { should have_match("abbc") }
+      it { should have_match("zabdddddc") }
+      it { should have_match("zadcasdf") }
+      it { should have_match("zacasdfacg") }
 
-    it { should_not have_match("abddddd") }
+      it { should_not have_match("abddddd") }
+    end
   end
 
 end

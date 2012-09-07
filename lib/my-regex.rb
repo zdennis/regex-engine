@@ -30,6 +30,7 @@ class MyRegex
         current_ptn = @pattern[pattern_index]
         prev_str    = str[str_index - 1] if str_index > 0
         prev_ptn    = @pattern[pattern_index-1] if pattern_index > 0
+        next_ptn    = @pattern[pattern_index+1] unless pattern_index > @pattern.length
         printf "%12s | %12s | %12s | %12s | ", str_index, current_str, pattern_index, current_ptn
         debug = ""
 
@@ -72,6 +73,8 @@ class MyRegex
 
         if pattern_index >= @pattern.length
           return true
+        elsif [".", "*"].include?(next_ptn)
+          # the next part of the pattern is a modifier there's a chance of matching
         elsif str_index == str.length
           return false
         end
