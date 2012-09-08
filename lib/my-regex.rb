@@ -21,6 +21,10 @@ class MyRegex
       ch == "*"
     end
 
+    def is_one_or_more?(ch)
+      ch == "+"
+    end
+
     def initialize(pattern)
       pindex = 0
       @acceptors = []
@@ -35,6 +39,13 @@ class MyRegex
         if is_zero_or_more?(current_ch)
           prev_acceptor = @acceptors.last
           @acceptors[-1] = ZeroOrMoreAcceptor.new(prev_acceptor)
+
+          next_index = pindex + 1          
+          pattern = pattern[next_index..-1]
+          pindex  = 0
+        elsif is_one_or_more?(current_ch)
+          prev_acceptor = @acceptors.last
+          @acceptors[-1] = OneOrMoreAcceptor.new(prev_acceptor)
 
           next_index = pindex + 1          
           pattern = pattern[next_index..-1]
@@ -194,4 +205,31 @@ str2match c
     end
   end
 
+  class OneOrMoreAcceptor
+    attr_reader :matched_at, :matched_length
+
+    def initialize(acceptor)
+      @acceptor = acceptor
+    end
+
+    def accept?(str, max_length)
+      matched_at_least_once = false
+      matched_length = 0
+
+      if max_length == -1 || (max_length && max_length > 0)
+        while @acceptor.accept?(str, max_length)
+          matched_at_least_once = true
+          matched_length += @acceptor.matched_length
+          str = str[1..-1]
+
+          break if max_length && matched_length == max_length
+        end
+      end
+
+      @matched_at = 0 if matched_at_least_once
+      @matched_length = matched_length
+
+      matched_at_least_once
+    end
+  end
 end

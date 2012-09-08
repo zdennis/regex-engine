@@ -63,7 +63,31 @@ describe "regex matching" do
       should_not_match "zadcasdf"
       should_not_match "abddddd"
     end
-
   end
+
+  describe "1 or more occurrences" do
+    describe "/a.+c/" do
+      should_match "abc"
+      should_match "abbc"
+      should_match "zabdddddc"
+      should_match "zadcasdf"
+      should_match "zacasdfacg"
+
+      should_not_match "ac"
+      should_not_match "abddddd"
+    end
+
+    describe "/ab+c/" do
+      should_match "abc"
+      should_match "abbbbbbbbbbbbc"
+      should_match "abbc"
+
+      should_not_match "zacasdfacg"
+      should_not_match "zabdddddc"
+      should_not_match "zadcasdf"
+      should_not_match "abddddd"
+    end
+  end
+
 
 end
