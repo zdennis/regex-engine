@@ -110,6 +110,7 @@ class MyRegex
     end
 
     def accept?(str, max_length)
+      raise "Override in subclass"
     end
   end
 
@@ -162,34 +163,49 @@ class MyRegex
   end
 
   class AutomatonGroup < Automaton
+    attr_reader :number_of_times_matched
+
+    def self.matches_required(*args)
+      args.any? ? @matches_required = args.first : @matches_required
+    end
+
     def initialize(acceptor)
       @acceptor = acceptor
+      @number_of_times_matched = 0
+    end
+
+    def matches_required
+      self.class.matches_required
+    end
+
+    def accept?(str, max_length)
+      @matched_at = 0 if @number_of_times_matched > 0
+      matches_required <= number_of_times_matched
     end
   end
 
   class ZeroOrMoreAcceptor < AutomatonGroup
-    def accept?(str, max_length)
-      matched_at_least_once = false
-      matched_length = 0
+    self.matches_required 0
 
+    def accept?(str, max_length)
+      @matched_length = 0
       if max_length == -1 || (max_length && max_length > 0)
         while @acceptor.accept?(str, max_length)
-          matched_at_least_once = true
-          matched_length += @acceptor.matched_length
+          @number_of_times_matched += 1
+          @matched_length += @acceptor.matched_length.to_i
           str = str[1..-1]
 
-          break if max_length && matched_length == max_length
+          break if max_length && @matched_length == max_length
         end
       end
 
-      @matched_at = 0 if matched_at_least_once
-      @matched_length = matched_length
-
-      true
+      super
     end
   end
 
   class OneOrMoreAcceptor < AutomatonGroup
+    self.matches_required 1
+
     def accept?(str, max_length)
       matched_at_least_once = false
       matched_length = 0
