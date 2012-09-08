@@ -29,7 +29,6 @@ class MyRegex
       pindex = 0
       @acceptors = []
 
-      # a.c
       loop do
 
         current_ch = pattern[pindex]
@@ -66,19 +65,6 @@ class MyRegex
         break if pattern.length == 0 || (pindex == pattern.length)
       end
     end
-
-=begin
-string = ac
-
-str2match: ac
-  matching with a  true
-  matching with .* true (match_length = 1)
-  matching with c  false
-
-str2match c
-  matching with .* true (match_length = 0)
-  matching with c true
-=end
 
     def accept?(str)
       str4match = str.dup
@@ -157,6 +143,8 @@ str2match c
       end
     end
   end
+
+
 
   class AnyCharacterAcceptor
     attr_reader :matched_at, :matched_length
