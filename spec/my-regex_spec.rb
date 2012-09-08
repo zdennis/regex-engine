@@ -89,5 +89,26 @@ describe "regex matching" do
     end
   end
 
+  describe "mixing modifiers" do
+    describe "/a+bc*d/" do
+      should_match "abcd"
+      should_match "aaaabcd"
+      should_match "aaaabccccccccd"
+      should_match "aaaabd"
+
+      should_not_match "bcd"
+      should_not_match "aaabbbbbcd"
+    end
+
+    describe "/a*.c+d/" do
+      should_match "abcd"
+      should_match "aaaabcd"
+      should_match "aaaabccccccccd"
+      should_match "bcd"
+
+      should_not_match "aaaabd"
+      should_not_match "aaabbbbbcd"
+    end
+  end
 
 end
