@@ -89,6 +89,11 @@ describe "regex matching" do
       should_not_match "zadcasdf"
       should_not_match "abddddd"
     end
+
+    describe "/<.+>/" do
+      should_match "<em>foo"
+      should_match "<em>foo</em>"
+    end    
   end
 
   describe "0 or 1 occurrence" do
@@ -97,6 +102,11 @@ describe "regex matching" do
       should_match "ac"
 
       should_not_match "abbc"
+    end
+
+    describe "/<.+?>/" do
+      should_match "<em>foo"
+      should_match "<em>foo</em>"
     end
   end
 

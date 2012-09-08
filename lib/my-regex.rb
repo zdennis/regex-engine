@@ -88,7 +88,7 @@ class MyRegex
         puts "str4match: #{str4match.inspect} #{acceptor.inspect}" if ENV["DEBUG"]
         return false if str4match.nil? || acceptor.matched_length == 0
 
-        if acceptor.accept?(str4match, acceptor.matched_length.to_i - 1)
+        if acceptor.accept?(str4match, acceptor.retry_length)
           puts "  matched at #{sindex}, #{acceptor.matched_length}" if ENV["DEBUG"]
           sindex += acceptor.matched_length
           accepted_stack.push acceptor
@@ -105,7 +105,7 @@ class MyRegex
           sindex -= acceptor_stack.first.matched_length
         end
 
-        puts "sindex (#{sindex} == #{str.length})" if ENV["DEBUG"]
+        puts "sindex (#{sindex} of #{str.length})" if ENV["DEBUG"]
 
         return true if acceptor_stack.empty?
         return false if str4match.nil? || sindex > str.length
@@ -123,11 +123,22 @@ class MyRegex
     def accept?(str, max_length)
       raise "Override in subclass"
     end
+
+    def retry_length
+      matched_length.to_i - 1      
+    end
+
+    def to_s
+      "<#{self.class.name} pattern=#{@pattern.inspect}>"
+    end
   end
 
   class SingleCharacterAcceptor < Automaton
     def accept?(str, max_length=nil)
-      if max_length == 0
+      # if max_length is 0 then we'll never match because there's nothing
+      # to match on. If max_length is greater than 1, than we'll never match
+      # because we only ever match on a single character.
+      if max_length == 0 || max_length > 1
         @matched_at = 0
         @matched_length = nil
         false
@@ -186,6 +197,10 @@ class MyRegex
       @matched_at = 0 if @number_of_times_matched > 0
       matches_required <= @number_of_times_matched
     end
+
+    def to_s
+      "<#{self.class.name} acceptor=#{@acceptor.inspect}>"
+    end
   end
 
   class ZeroOrMoreAcceptor < AutomatonGroup
@@ -196,8 +211,22 @@ class MyRegex
     self.matches_required 0
 
     def accept?(str, max_length)
-      max_length = 1 if max_length == -1
-      super(str, max_length)
+      @matched_length = 0
+      @number_of_times_matched = 0
+
+      if max_length == -1 || (max_length && max_length > 0)
+        if @acceptor.accept?(str, max_length)
+          @number_of_times_matched += 1
+          @matched_length += @acceptor.matched_length.to_i
+        end
+      end
+
+      @matched_at = 0 if @number_of_times_matched > 0
+      matches_required <= @number_of_times_matched
+    end
+
+    def retry_length
+      matched_length.to_i + 1      
     end
   end
 
