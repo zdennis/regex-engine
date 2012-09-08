@@ -91,6 +91,15 @@ describe "regex matching" do
     end
   end
 
+  describe "0 or 1 occurrence" do
+    describe "/ab?c/" do
+      should_match "abc"
+      should_match "ac"
+
+      should_not_match "abbc"
+    end
+  end
+
   describe "mixing modifiers" do
     describe "/a+bc*d/" do
       should_match "abcd"

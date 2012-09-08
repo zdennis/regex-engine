@@ -25,6 +25,10 @@ class MyRegex
       ch == "+"
     end
 
+    def is_zero_or_one?(ch)
+      ch == "?"
+    end
+
     def initialize(pattern)
       pindex = 0
       @acceptors = []
@@ -45,6 +49,13 @@ class MyRegex
           prev_acceptor = @acceptors.last
           @acceptors[-1] = OneOrMoreAcceptor.new(prev_acceptor)
 
+          next_index = pindex + 1          
+          pattern = pattern[next_index..-1]
+          pindex  = 0
+        elsif is_zero_or_one?(current_ch)
+          prev_acceptor = @acceptors.last
+          @acceptors[-1] = ZeroOrOneAcceptor.new(prev_acceptor)
+          
           next_index = pindex + 1          
           pattern = pattern[next_index..-1]
           pindex  = 0
@@ -179,6 +190,25 @@ class MyRegex
 
   class ZeroOrMoreAcceptor < AutomatonGroup
     self.matches_required 0
+  end
+
+  class ZeroOrOneAcceptor < AutomatonGroup
+    self.matches_required 0
+
+    def accept?(str, max_length)
+      @matched_length = 0
+      @number_of_times_matched = 0
+
+      if max_length == -1 || (max_length && max_length > 0)
+        if @acceptor.accept?(str, max_length)
+          @number_of_times_matched += 1
+          @matched_length += @acceptor.matched_length.to_i
+        end
+      end
+
+      @matched_at = 0 if @number_of_times_matched > 0
+      matches_required <= @number_of_times_matched
+    end
   end
 
   class OneOrMoreAcceptor < AutomatonGroup
