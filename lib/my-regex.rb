@@ -176,15 +176,6 @@ class MyRegex
     end
 
     def accept?(str, max_length)
-      @matched_at = 0 if @number_of_times_matched > 0
-      matches_required <= @number_of_times_matched
-    end
-  end
-
-  class ZeroOrMoreAcceptor < AutomatonGroup
-    self.matches_required 0
-
-    def accept?(str, max_length)
       @matched_length = 0
       @number_of_times_matched = 0      
       
@@ -198,28 +189,16 @@ class MyRegex
         end
       end
 
-      super
+      @matched_at = 0 if @number_of_times_matched > 0
+      matches_required <= @number_of_times_matched
     end
+  end
+
+  class ZeroOrMoreAcceptor < AutomatonGroup
+    self.matches_required 0
   end
 
   class OneOrMoreAcceptor < AutomatonGroup
     self.matches_required 1
-
-    def accept?(str, max_length)
-      @matched_length = 0
-      @number_of_times_matched = 0
-
-      if max_length == -1 || (max_length && max_length > 0)
-        while @acceptor.accept?(str, max_length)
-          @number_of_times_matched += 1          
-          @matched_length += @acceptor.matched_length.to_i
-          str = str[1..-1]
-
-          break if max_length && @matched_length == max_length
-        end
-      end
-
-      super
-    end
   end
 end
