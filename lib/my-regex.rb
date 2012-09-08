@@ -30,7 +30,6 @@ class MyRegex
       @acceptors = []
 
       loop do
-
         current_ch = pattern[pindex]
         next_ch    = pattern[pindex+1]
         puts "START: #{pattern[pindex].inspect}  #{current_ch.inspect}" if ENV["DEBUG"]
@@ -103,13 +102,18 @@ class MyRegex
     end
   end
 
-  class SimpleCharacterAcceptor
+  class Automaton
     attr_reader :matched_at, :matched_length
 
     def initialize(pattern)
       @pattern = pattern
     end
 
+    def accept?(str, max_length)
+    end
+  end
+
+  class SimpleCharacterAcceptor < Automaton
     def accept?(str, max_length=nil)
       return nil unless str
 
@@ -144,15 +148,7 @@ class MyRegex
     end
   end
 
-
-
-  class AnyCharacterAcceptor
-    attr_reader :matched_at, :matched_length
-
-    def initialize(pattern)
-      @pattern = pattern
-    end
-
+  class AnyCharacterAcceptor < Automaton
     def accept?(str, max_length=nil)
       if max_length == 0
         @matched_length = 0
@@ -165,13 +161,13 @@ class MyRegex
     end
   end
 
-  class ZeroOrMoreAcceptor
-    attr_reader :matched_at, :matched_length
-
+  class AutomatonGroup < Automaton
     def initialize(acceptor)
       @acceptor = acceptor
     end
+  end
 
+  class ZeroOrMoreAcceptor < AutomatonGroup
     def accept?(str, max_length)
       matched_at_least_once = false
       matched_length = 0
@@ -193,13 +189,7 @@ class MyRegex
     end
   end
 
-  class OneOrMoreAcceptor
-    attr_reader :matched_at, :matched_length
-
-    def initialize(acceptor)
-      @acceptor = acceptor
-    end
-
+  class OneOrMoreAcceptor < AutomatonGroup
     def accept?(str, max_length)
       matched_at_least_once = false
       matched_length = 0
