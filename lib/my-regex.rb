@@ -116,8 +116,6 @@ class MyRegex
 
   class SimpleCharacterAcceptor < Automaton
     def accept?(str, max_length=nil)
-      return nil unless str
-
       if max_length == 0
         @matched_at = 0
         return false
