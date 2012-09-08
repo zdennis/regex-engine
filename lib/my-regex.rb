@@ -196,18 +196,8 @@ class MyRegex
     self.matches_required 0
 
     def accept?(str, max_length)
-      @matched_length = 0
-      @number_of_times_matched = 0
-
-      if max_length == -1 || (max_length && max_length > 0)
-        if @acceptor.accept?(str, max_length)
-          @number_of_times_matched += 1
-          @matched_length += @acceptor.matched_length.to_i
-        end
-      end
-
-      @matched_at = 0 if @number_of_times_matched > 0
-      matches_required <= @number_of_times_matched
+      max_length = 1 if max_length == -1
+      super(str, max_length)
     end
   end
 
