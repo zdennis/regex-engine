@@ -55,7 +55,7 @@ class MyRegex
           pattern = pattern[next_index..-1]
           pindex  = 0
         else
-          @acceptors << SimpleCharacterAcceptor.new(current_ch)
+          @acceptors << SingleCharacterAcceptor.new(current_ch)
 
           next_index = pindex + 1          
           pattern = pattern[next_index..-1]
@@ -114,35 +114,20 @@ class MyRegex
     end
   end
 
-  class SimpleCharacterAcceptor < Automaton
+  class SingleCharacterAcceptor < Automaton
     def accept?(str, max_length=nil)
       if max_length == 0
         @matched_at = 0
-        return false
-      end
-
-      sindex = 0
-      pindex = 0
-      loop do
-        return if @matched_at == max_length
-
-        string_ch  = str[sindex]
-        pattern_ch = @pattern[pindex]
-
-        if string_ch == pattern_ch
-          @matched_at = sindex      
-          @matched_length = sindex + 1
-          sindex += 1
-          pindex += 1
-        else
-          return false          
-        end
-
-        if pindex >= @pattern.length
-          return true
-        elsif sindex == str.length 
-          return false
-        end
+        @matched_length = nil
+        false
+      elsif str[0] == @pattern[0]
+        @matched_at = 0
+        @matched_length = 1
+        true
+      else
+        @matched_at = 0
+        @matched_length = nil
+        false        
       end
     end
   end
