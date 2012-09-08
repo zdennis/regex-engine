@@ -19,6 +19,8 @@ describe "regex matching" do
 
   describe "/a/" do
     should_match "a"
+
+    should_not_match ""    
     should_not_match "b"
   end
 
