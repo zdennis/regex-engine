@@ -30,7 +30,7 @@ class MyRegex
 
         current_ch = pattern[pindex]
         next_ch    = pattern[pindex+1]
-        puts "START: #{pattern[pindex].inspect}  #{current_ch.inspect}"
+        puts "START: #{pattern[pindex].inspect}  #{current_ch.inspect}" if ENV["DEBUG"]
 
         if is_zero_or_more?(current_ch)
           prev_acceptor = @acceptors.last
@@ -78,27 +78,27 @@ str2match c
       loop do
         acceptor = acceptor_stack.first
         str4match = str[sindex..-1]
-        puts "str4match: #{str4match.inspect} #{acceptor.inspect}"
+        puts "str4match: #{str4match.inspect} #{acceptor.inspect}" if ENV["DEBUG"]
         return false if str4match.nil? || acceptor.matched_length == 0
 
         if acceptor.accept?(str4match, acceptor.matched_length.to_i - 1)
-          puts "  matched at #{sindex}, #{acceptor.matched_length}"
+          puts "  matched at #{sindex}, #{acceptor.matched_length}" if ENV["DEBUG"]
           sindex += acceptor.matched_length
           accepted_stack.push acceptor
           acceptor_stack = acceptor_stack[1..-1]
         elsif accepted_stack.empty?
-          puts "  not matched (stack empty, move forward one character)"
+          puts "  not matched (stack empty, move forward one character)" if ENV["DEBUG"]
           sindex += 1
         else
-          puts "  not matched resetting"          
+          puts "  not matched resetting" if ENV["DEBUG"] 
           acceptor_stack = [accepted_stack.pop].concat(acceptor_stack)
           accepted_stack = accepted_stack[1..-1] || []
 
-          puts "  try again: #{sindex} to #{sindex - acceptor_stack.first.matched_length}"
+          puts "  try again: #{sindex} to #{sindex - acceptor_stack.first.matched_length}" if ENV["DEBUG"]
           sindex -= acceptor_stack.first.matched_length
         end
 
-        puts "sindex (#{sindex} == #{str.length})"
+        puts "sindex (#{sindex} == #{str.length})" if ENV["DEBUG"]
 
         return true if acceptor_stack.empty?
         return false if str4match.nil? || sindex > str.length
