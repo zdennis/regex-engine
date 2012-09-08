@@ -24,15 +24,13 @@ class MyRegex
     def initialize(pattern)
       pindex = 0
       @acceptors = []
-      current_acceptor_type = SimpleCharacterAcceptor
-
-      current_pattern = ""
 
       # a.c
       loop do
-#        puts "START: #{pattern[pindex].inspect}  #{current_pattern.inspect}"
+
         current_ch = pattern[pindex]
         next_ch    = pattern[pindex+1]
+        puts "START: #{pattern[pindex].inspect}  #{current_ch.inspect}"
 
         if is_zero_or_more?(current_ch)
           prev_acceptor = @acceptors.last
@@ -40,25 +38,22 @@ class MyRegex
 
           next_index = pindex + 1          
           pattern = pattern[next_index..-1]
-          current_pattern = ""
           pindex  = 0
         elsif is_any_char?(current_ch)
-          @acceptors << current_acceptor_type.new(current_pattern)
+          @acceptors << AnyCharacterAcceptor.new(current_ch)
 
           next_index = pindex + 1          
           pattern = pattern[next_index..-1]
-          current_pattern = ""
           pindex  = 0
-
-          @acceptors << AnyCharacterAcceptor.new(current_ch)
         else
-          current_pattern << current_ch
-          pindex += 1          
+          @acceptors << SimpleCharacterAcceptor.new(current_ch)
+
+          next_index = pindex + 1          
+          pattern = pattern[next_index..-1]
+          pindex  = 0
         end
         break if pattern.length == 0 || (pindex == pattern.length)
       end
-
-      @acceptors << current_acceptor_type.new(current_pattern)
     end
 
 =begin
@@ -83,27 +78,28 @@ str2match c
       loop do
         acceptor = acceptor_stack.first
         str4match = str[sindex..-1]
-#        puts "str4match: #{str4match.inspect} #{acceptor.inspect}"
-          return false if str4match.nil? || acceptor.matched_length == 0
+        puts "str4match: #{str4match.inspect} #{acceptor.inspect}"
+        return false if str4match.nil? || acceptor.matched_length == 0
 
         if acceptor.accept?(str4match, acceptor.matched_length.to_i - 1)
-#          puts "  matched"
+          puts "  matched at #{sindex}, #{acceptor.matched_length}"
           sindex += acceptor.matched_length
           accepted_stack.push acceptor
           acceptor_stack = acceptor_stack[1..-1]
         elsif accepted_stack.empty?
-#          puts "  not matched (stack empty, move forward one character)"
+          puts "  not matched (stack empty, move forward one character)"
           sindex += 1
         else
-#          puts "  not matched resetting"          
+          puts "  not matched resetting"          
           acceptor_stack = [accepted_stack.pop].concat(acceptor_stack)
           accepted_stack = accepted_stack[1..-1] || []
 
-#          puts "  try again: #{sindex} to #{sindex - acceptor_stack.first.matched_length}"
+          puts "  try again: #{sindex} to #{sindex - acceptor_stack.first.matched_length}"
           sindex -= acceptor_stack.first.matched_length
         end
 
-#        puts "sindex (#{sindex} == #{str.length})"
+        puts "sindex (#{sindex} == #{str.length})"
+
         return true if acceptor_stack.empty?
         return false if str4match.nil? || sindex > str.length
       end
@@ -120,9 +116,16 @@ str2match c
     def accept?(str, max_length=nil)
       return nil unless str
 
+      if max_length == 0
+        @matched_at = 0
+        return false
+      end
+
       sindex = 0
       pindex = 0
       loop do
+        return if @matched_at == max_length
+
         string_ch  = str[sindex]
         pattern_ch = @pattern[pindex]
 
@@ -175,7 +178,7 @@ str2match c
       matched_length = 0
 
       if max_length == -1 || (max_length && max_length > 0)
-        while @acceptor.accept?(str)
+        while @acceptor.accept?(str, max_length)
           matched_at_least_once = true
           matched_length += @acceptor.matched_length
           str = str[1..-1]

@@ -44,6 +44,19 @@ describe "regex matching" do
 
       it { should_not have_match("abddddd") }
     end
+
+    describe "/ab*c/" do
+      let(:pattern){ "/ab*c/" }
+      it { should have_match("abc") }
+      it { should have_match("abbbbbbbbbbbbc") }
+      it { should have_match("zacasdfacg") }
+
+      it { should have_match("abbc") }
+      it { should_not have_match("zabdddddc") }
+      it { should_not have_match("zadcasdf") }
+      it { should_not have_match("abddddd") }
+    end
+
   end
 
 end
