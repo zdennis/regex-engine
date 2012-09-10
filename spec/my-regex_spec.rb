@@ -57,16 +57,16 @@ describe "regex matching" do
 
     describe "/<.*?>/" do
       should_match "<>"
-      # should_match "<em>foo"
-      # should_match "<em>foo</em>"
+      should_match "<em>foo"
+      should_match "<em>foo</em>"
     end    
 
     describe "/ab*c/" do
       should_match "abc"
       should_match "abbbbbbbbbbbbc"
       should_match "zacasdfacg"
-
       should_match "abbc"
+
       should_not_match "zabdddddc"
       should_not_match "zadcasdf"
       should_not_match "abddddd"

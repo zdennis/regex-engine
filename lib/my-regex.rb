@@ -82,14 +82,23 @@ class MyRegex
       accepted_stack = []
       sindex = 0
 
+      tried_states = []
+
       loop do
         acceptor = acceptor_stack.first
         str4match = str[sindex..-1]
         puts "str4match: #{str4match.inspect} #{acceptor.inspect}" if ENV["DEBUG"]
-        return false if str4match.nil? || acceptor.matched_length == 0
+
+        possible_match_state = [sindex, acceptor, (acceptor && acceptor.retry_length)]
+
+        if str4match.nil? || tried_states.include?(possible_match_state)
+          return false 
+        end
+        tried_states << possible_match_state
 
         if acceptor.accept?(str4match, acceptor.retry_length)
           puts "  matched at #{sindex}, #{acceptor.matched_length}" if ENV["DEBUG"]
+          tried_states << possible_match_state
           sindex += acceptor.matched_length
           accepted_stack.push acceptor
           acceptor_stack = acceptor_stack[1..-1]
