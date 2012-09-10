@@ -111,8 +111,11 @@ describe "regex matching" do
     end
 
     describe "/<.+?>/" do
+      should_match "<e>"      
       should_match "<em>foo"
       should_match "<em>foo</em>"
+
+      should_not_match "<>"
     end
   end
 
