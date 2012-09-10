@@ -55,6 +55,12 @@ describe "regex matching" do
       should_not_match "abddddd"
     end
 
+    describe "/<.*?>/" do
+      should_match "<>"
+      # should_match "<em>foo"
+      # should_match "<em>foo</em>"
+    end    
+
     describe "/ab*c/" do
       should_match "abc"
       should_match "abbbbbbbbbbbbc"

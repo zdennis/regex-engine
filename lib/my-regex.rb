@@ -116,6 +116,14 @@ class MyRegex
   class Automaton
     attr_reader :matched_at, :matched_length
 
+    def self.matches_required(*args)
+      args.any? ? @matches_required = args.first : @matches_required
+    end
+
+    def matches_required
+      self.class.matches_required
+    end
+
     def initialize(pattern)
       @pattern = pattern
     end
@@ -134,6 +142,8 @@ class MyRegex
   end
 
   class SingleCharacterAcceptor < Automaton
+    self.matches_required 1
+
     def accept?(str, max_length=nil)
       # if max_length is 0 then we'll never match because there's nothing
       # to match on. If max_length is greater than 1, than we'll never match
@@ -155,6 +165,8 @@ class MyRegex
   end
 
   class AnyCharacterAcceptor < Automaton
+    self.matches_required 1
+
     def accept?(str, max_length=nil)
       if max_length == 0
         @matched_length = 0
@@ -168,16 +180,8 @@ class MyRegex
   end
 
   class AutomatonGroup < Automaton
-    def self.matches_required(*args)
-      args.any? ? @matches_required = args.first : @matches_required
-    end
-
     def initialize(acceptor)
       @acceptor = acceptor
-    end
-
-    def matches_required
-      self.class.matches_required
     end
 
     def accept?(str, max_length)
@@ -210,9 +214,15 @@ class MyRegex
   class ZeroOrOneAcceptor < AutomatonGroup
     self.matches_required 0
 
+    def initialize(*)
+      super
+      @retry_length = @acceptor.matches_required
+    end
+
     def accept?(str, max_length)
       @matched_length = 0
       @number_of_times_matched = 0
+      @retry_length += 1
 
       if max_length == -1 || (max_length && max_length > 0)
         if @acceptor.accept?(str, max_length)
@@ -226,7 +236,7 @@ class MyRegex
     end
 
     def retry_length
-      matched_length.to_i + 1      
+      @retry_length
     end
   end
 
