@@ -13,22 +13,6 @@ class MyRegex
   end
 
   class Acceptor
-    def is_any_char?(ch)
-      ch == "."
-    end
-
-    def is_zero_or_more?(ch)
-      ch == "*"
-    end
-
-    def is_one_or_more?(ch)
-      ch == "+"
-    end
-
-    def is_zero_or_one?(ch)
-      ch == "?"
-    end
-
     def initialize(pattern)
       pindex = 0
       @acceptors = []
@@ -38,42 +22,35 @@ class MyRegex
         next_ch    = pattern[pindex+1]
         puts "START: #{pattern[pindex].inspect}  #{current_ch.inspect}" if ENV["DEBUG"]
 
-        if is_zero_or_more?(current_ch)
+        if acceptor_klass=wrap_previous_acceptor_map[current_ch]
           prev_acceptor = @acceptors.last
-          @acceptors[-1] = ZeroOrMoreAcceptor.new(prev_acceptor)
+          @acceptors[-1] = acceptor_klass.new(prev_acceptor)
 
           next_index = pindex + 1          
           pattern = pattern[next_index..-1]
           pindex  = 0
-        elsif is_one_or_more?(current_ch)
-          prev_acceptor = @acceptors.last
-          @acceptors[-1] = OneOrMoreAcceptor.new(prev_acceptor)
-
-          next_index = pindex + 1          
-          pattern = pattern[next_index..-1]
-          pindex  = 0
-        elsif is_zero_or_one?(current_ch)
-          prev_acceptor = @acceptors.last
-          @acceptors[-1] = ZeroOrOneAcceptor.new(prev_acceptor)
-          
-          next_index = pindex + 1          
-          pattern = pattern[next_index..-1]
-          pindex  = 0
-        elsif is_any_char?(current_ch)
-          @acceptors << AnyCharacterAcceptor.new(current_ch)
-
-          next_index = pindex + 1          
-          pattern = pattern[next_index..-1]
-          pindex  = 0
-        else
-          @acceptors << SingleCharacterAcceptor.new(current_ch)
+        elsif acceptor_klass=add_acceptor_map[current_ch]
+          @acceptors << acceptor_klass.new(current_ch)
 
           next_index = pindex + 1          
           pattern = pattern[next_index..-1]
           pindex  = 0
         end
+
         break if pattern.length == 0 || (pindex == pattern.length)
       end
+    end
+
+    def add_acceptor_map
+      Hash.new(SingleCharacterAcceptor).merge("." => AnyCharacterAcceptor)
+    end
+
+    def wrap_previous_acceptor_map
+      {
+        "?" => ZeroOrOneAcceptor,      
+        "*" => ZeroOrMoreAcceptor,
+        "+" => OneOrMoreAcceptor
+      }
     end
 
     def accept?(str)
@@ -196,6 +173,8 @@ class MyRegex
     def accept?(str, max_length)
       @matched_length = 0
       @number_of_times_matched = 0      
+
+      puts "  --> #{self.class.name}  #{str.inspect} #{max_length}" if ENV["DEBUG"]
       
       if max_length == -1 || (max_length && max_length > 0)
         while @acceptor.accept?(str, max_length)
@@ -232,6 +211,8 @@ class MyRegex
       @matched_length = 0
       @number_of_times_matched = 0
       @retry_length += 1
+
+      puts "  --| accept zero or one: #{str.inspect} #{max_length}" if ENV["DEBUG"]
 
       if max_length == -1 || (max_length && max_length > 0)
         if @acceptor.accept?(str, max_length)
