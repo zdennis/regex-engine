@@ -1,32 +1,33 @@
 require 'spec_helper'
 
 describe "regex matching" do
-  subject { regex_engine }
-  let(:regex_engine) { MyRegex.new(pattern) }
+  subject(:regex_engine) { MyRegex.new(pattern) }
   let(:pattern){ example.example_group.description }
 
-  def self.should_match(str)
+  def self.should_match(str, options)
     it "matches #{str.inspect}" do
-      should have_match(str)
+      offset = regex_engine =~ str
+      offset.should eq(options[:at])
     end
   end
 
   def self.should_not_match(str)
     it "doesn't match #{str.inspect}" do
-      should_not have_match(str)
+      offset = regex_engine =~ str
+      offset.should be_nil
     end
   end
 
   describe "/a/" do
-    should_match "a"
+    should_match "a", :at => 0
 
-    should_not_match ""    
+    should_not_match ""
     should_not_match "b"
   end
 
   describe "/abc/" do
-    should_match "abc"
-    should_match "zabc"
+    should_match "abc", :at => 0
+    should_match "zabc", :at => 1
 
     should_not_match "bca"
     should_not_match "cba"
@@ -34,9 +35,9 @@ describe "regex matching" do
   end
 
   describe "/a.c/" do
-    should_match "abc"
-    should_match "zabc"
-    should_match "zadcasdf"
+    should_match "abc", :at => 0
+    should_match "zabc", :at => 1
+    should_match "zadcasdf", :at => 1
 
     should_not_match "cbc"
     should_not_match "zabd"
@@ -45,27 +46,27 @@ describe "regex matching" do
 
   describe "0 or more occurrences" do
     describe "/a.*c/" do
-      should_match "ac"
-      should_match "abc"
-      should_match "abbc"
-      should_match "zabdddddc"
-      should_match "zadcasdf"
-      should_match "zacasdfacg"
+      should_match "ac", :at => 0
+      should_match "abc", :at => 0
+      should_match "abbc", :at => 0
+      should_match "zabdddddc", :at => 1
+      should_match "zadcasdf", :at => 1
+      should_match "zacasdfacg", :at => 1
 
       should_not_match "abddddd"
     end
 
     describe "/<.*?>/" do
-      should_match "<>"
-      should_match "<em>foo"
-      should_match "<em>foo</em>"
+      should_match "<>", :at => 0
+      should_match "<em>foo", :at => 0
+      should_match "<em>foo</em>", :at => 0
     end    
 
     describe "/ab*c/" do
-      should_match "abc"
-      should_match "abbbbbbbbbbbbc"
-      should_match "zacasdfacg"
-      should_match "abbc"
+      should_match "abc", :at => 0
+      should_match "abbbbbbbbbbbbc", :at => 0
+      should_match "zacasdfacg", :at => 1
+      should_match "abbc", :at => 0
 
       should_not_match "zabdddddc"
       should_not_match "zadcasdf"
@@ -75,20 +76,20 @@ describe "regex matching" do
 
   describe "1 or more occurrences" do
     describe "/a.+c/" do
-      should_match "abc"
-      should_match "abbc"
-      should_match "zabdddddc"
-      should_match "zadcasdf"
-      should_match "zacasdfacg"
+      should_match "abc", :at => 0
+      should_match "abbc", :at => 0
+      should_match "zabdddddc", :at => 1
+      should_match "zadcasdf", :at => 1
+      should_match "zacasdfacg", :at => 1
 
       should_not_match "ac"
       should_not_match "abddddd"
     end
 
     describe "/ab+c/" do
-      should_match "abc"
-      should_match "abbbbbbbbbbbbc"
-      should_match "abbc"
+      should_match "abc", :at => 0
+      should_match "abbbbbbbbbbbbc", :at => 0
+      should_match "abbc", :at => 0
 
       should_not_match "zacasdfacg"
       should_not_match "zabdddddc"
@@ -97,23 +98,23 @@ describe "regex matching" do
     end
 
     describe "/<.+>/" do
-      should_match "<em>foo"
-      should_match "<em>foo</em>"
+      should_match "<em>foo", :at => 0
+      should_match "<em>foo</em>", :at => 0
     end    
   end
 
   describe "0 or 1 occurrence" do
     describe "/ab?c/" do
-      should_match "abc"
-      should_match "ac"
+      should_match "abc", :at => 0
+      should_match "ac", :at => 0
 
       should_not_match "abbc"
     end
 
     describe "/<.+?>/" do
-      should_match "<e>"      
-      should_match "<em>foo"
-      should_match "<em>foo</em>"
+      should_match "<e>", :at => 0
+      should_match "<em>foo", :at => 0
+      should_match "<em>foo</em>", :at => 0
 
       should_not_match "<>"
     end
@@ -121,20 +122,20 @@ describe "regex matching" do
 
   describe "mixing modifiers" do
     describe "/a+bc*d/" do
-      should_match "abcd"
-      should_match "aaaabcd"
-      should_match "aaaabccccccccd"
-      should_match "aaaabd"
+      should_match "abcd", :at => 0
+      should_match "aaaabcd", :at => 0
+      should_match "aaaabccccccccd", :at => 0
+      should_match "aaaabd", :at => 0
 
       should_not_match "bcd"
       should_not_match "aaabbbbbcd"
     end
 
     describe "/a*.c+d/" do
-      should_match "abcd"
-      should_match "aaaabcd"
-      should_match "aaaabccccccccd"
-      should_match "bcd"
+      should_match "abcd", :at => 0
+      should_match "aaaabcd", :at => 0
+      should_match "aaaabccccccccd", :at => 0
+      should_match "bcd", :at => 0
 
       should_not_match "aaaabd"
       should_not_match "aaabbbbbcd"

@@ -8,8 +8,10 @@ class MyRegex
     @engine = Acceptor.new(@pattern)
   end
 
-  def has_match?(str)
-    @engine.accept?(str)
+  def =~(str)
+    if md=@engine.match(str)
+      md.offset
+    end
   end
 
   class Acceptor
@@ -53,11 +55,12 @@ class MyRegex
       }
     end
 
-    def accept?(str)
+    def match(str)
       str4match = str.dup
       acceptor_stack = @acceptors.dup
       accepted_stack = []
       sindex = 0
+      offset = 0
 
       tried_states = []
 
@@ -68,12 +71,16 @@ class MyRegex
 
         possible_match_state = [sindex, acceptor, (acceptor && acceptor.retry_length)]
 
+        if accepted_stack.length == 0
+          offset = sindex
+        end
+
         if str4match.nil? || tried_states.include?(possible_match_state)
           return false 
         end
         tried_states << possible_match_state
 
-        if acceptor.accept?(str4match, acceptor.retry_length)
+        if acceptor.match(str4match, acceptor.retry_length)
           puts "  matched at #{sindex}, #{acceptor.matched_length}" if ENV["DEBUG"]
           tried_states << possible_match_state
           sindex += acceptor.matched_length
@@ -85,7 +92,7 @@ class MyRegex
         else
           puts "  not matched resetting" if ENV["DEBUG"] 
           acceptor_stack = [accepted_stack.pop].concat(acceptor_stack)
-          accepted_stack = accepted_stack[1..-1] || []
+          accepted_stack = accepted_stack #[0..-2] || []
 
           puts "  try again: #{sindex} to #{sindex - acceptor_stack.first.matched_length}" if ENV["DEBUG"]
           sindex -= acceptor_stack.first.matched_length
@@ -93,9 +100,20 @@ class MyRegex
 
         puts "sindex (#{sindex} of #{str.length})" if ENV["DEBUG"]
 
-        return true if acceptor_stack.empty?
-        return false if str4match.nil? || sindex > str.length
+        if acceptor_stack.empty?
+          return MatchData.new(offset)
+        elsif str4match.nil? || sindex > str.length
+          return nil
+        end
       end
+    end
+  end
+
+  class MatchData
+    attr_reader :offset
+
+    def initialize(offset)
+      @offset = offset
     end
   end
 
@@ -114,7 +132,7 @@ class MyRegex
       @pattern = pattern
     end
 
-    def accept?(str, max_length)
+    def match(str, max_length)
       raise "Override in subclass"
     end
 
@@ -130,7 +148,7 @@ class MyRegex
   class SingleCharacterAcceptor < Automaton
     self.matches_required 1
 
-    def accept?(str, max_length=nil)
+    def match(str, max_length=nil)
       # if max_length is 0 then we'll never match because there's nothing
       # to match on. If max_length is greater than 1, than we'll never match
       # because we only ever match on a single character.
@@ -153,7 +171,7 @@ class MyRegex
   class AnyCharacterAcceptor < Automaton
     self.matches_required 1
 
-    def accept?(str, max_length=nil)
+    def match(str, max_length=nil)
       if max_length == 0
         @matched_length = 0
       else
@@ -170,14 +188,14 @@ class MyRegex
       @acceptor = acceptor
     end
 
-    def accept?(str, max_length)
+    def match(str, max_length)
       @matched_length = 0
       @number_of_times_matched = 0      
 
       puts "  --> #{self.class.name}  #{str.inspect} #{max_length}" if ENV["DEBUG"]
       
       if max_length == -1 || (max_length && max_length > 0)
-        while @acceptor.accept?(str, max_length)
+        while @acceptor.match(str, max_length)
           @number_of_times_matched += 1
           @matched_length += @acceptor.matched_length.to_i
           str = str[1..-1]
@@ -207,7 +225,7 @@ class MyRegex
       @retry_length = @acceptor.matches_required
     end
 
-    def accept?(str, max_length)
+    def match(str, max_length)
       @matched_length = 0
       @number_of_times_matched = 0
       @retry_length += 1
@@ -215,7 +233,7 @@ class MyRegex
       puts "  --| accept zero or one: #{str.inspect} #{max_length}" if ENV["DEBUG"]
 
       if max_length == -1 || (max_length && max_length > 0)
-        if @acceptor.accept?(str, max_length)
+        if @acceptor.match(str, max_length)
           @number_of_times_matched += 1
           @matched_length += @acceptor.matched_length.to_i
         end
