@@ -101,7 +101,7 @@ class MyRegex
   end
 
   class Matching
-    attr_reader :matched_at, :matched_length, :max_length
+    attr_reader :max_length
 
     def self.matches_required(*args)
       args.any? ? @matches_required = args.first : @matches_required
@@ -122,10 +122,6 @@ class MyRegex
 
     def match(str, max_length)
       raise "Override in subclass"
-    end
-
-    def retry_length
-      matched_length.to_i - 1      
     end
 
     def to_s
@@ -157,36 +153,34 @@ class MyRegex
   end
 
   class MatchingGroup < Matching
-    attr_accessor :max_length
-
-    def initialize(acceptor)
-      @acceptor   = acceptor
+    def initialize(*)
+      super
       @max_length = -1
     end
 
     def match(str, max_length=@max_length)
       str2match = str[0..-1]
-      @matched_length = 0
-      @number_of_times_matched = 0
+      matched_length = 0
+      number_of_times_matched = 0
 
       if max_length == -1 || max_length > 0
         loop do
-          md = @acceptor.match(str2match)
+          md = @pattern.match(str2match)
           break if md.nil?
 
-          @number_of_times_matched += 1
-          @matched_length += md.length
+          number_of_times_matched += 1
+          matched_length += md.length
           str2match = str2match[1..-1]
 
-          break if @matched_length == max_length
+          break if matched_length == max_length
         end
       end
 
-      met_minimum_match = matches_required <= @number_of_times_matched
+      met_minimum_match = matches_required <= number_of_times_matched
       if met_minimum_match
         @matched_at = 0
-        @max_length = @number_of_times_matched - 1
-        MatchData.new :offset => @matched_at, :length => @number_of_times_matched
+        @max_length = number_of_times_matched - 1
+        MatchData.new :offset => 0, :length => number_of_times_matched
       else 
         @max_length = 0
         nil
@@ -194,7 +188,7 @@ class MyRegex
     end
 
     def to_s
-      "<#{self.class.name} acceptor=#{@acceptor.inspect}>"
+      "<#{self.class.name} acceptor=#{@pattern.inspect}>"
     end
   end
 
@@ -205,18 +199,18 @@ class MyRegex
   class LazyQuantifier < MatchingGroup
     def initialize(*)
       super
-      @max_length = @acceptor.matches_required
+      @max_length = @pattern.matches_required
     end
 
     def match(str)
       return nil if @max_length > str.length
-      @acceptor.match(str, @max_length).tap do
+      @pattern.match(str, @max_length).tap do
         @max_length += 1
       end
     end
 
     def matches_required
-      @acceptor.matches_required
+      @pattern.matches_required
     end
   end
 
