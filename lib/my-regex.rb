@@ -25,7 +25,7 @@ class MyRegex
       char = pattern[pindex]
       prev_acceptor = @patterns.last
 
-      if prev_acceptor.is_a?(AutomatonGroup) && char == "?"
+      if prev_acceptor.is_a?(MatchingGroup) && char == "?"
         @patterns[-1] = LazyQuantifier.new(prev_acceptor)
       elsif acceptor_klass=wrap_previous_acceptor_map[char]
         @patterns[-1] = acceptor_klass.new(prev_acceptor)
@@ -40,14 +40,14 @@ class MyRegex
   end
 
   def add_acceptor_map
-    @add_acceptor_map ||= Hash.new(SingleCharacterAcceptor).merge("." => WildcardAcceptor)
+    @add_acceptor_map ||= Hash.new(Character).merge("." => Wildcard)
   end
 
   def wrap_previous_acceptor_map
     @wrap_previous_acceptor_map ||= {
-      "?" => ZeroOrOneAcceptor, 
-      "*" => ZeroOrMoreAcceptor,
-      "+" => OneOrMoreAcceptor 
+      "?" => ZeroOrOneGreedy, 
+      "*" => ZeroOrMoreGreedy,
+      "+" => OneOrMoreGreedy 
     }
   end
 
@@ -100,7 +100,7 @@ class MyRegex
     end
   end
 
-  class Automaton
+  class Matching
     attr_reader :matched_at, :matched_length, :max_length
 
     def self.matches_required(*args)
@@ -133,7 +133,7 @@ class MyRegex
     end
   end
 
-  class SingleCharacterAcceptor < Automaton
+  class Character < Matching
     self.matches_required 1
 
     def match(str)
@@ -146,7 +146,7 @@ class MyRegex
     end
   end
 
-  class WildcardAcceptor < Automaton
+  class Wildcard < Matching
     self.matches_required 1
 
     def match(str)
@@ -156,7 +156,7 @@ class MyRegex
     end
   end
 
-  class AutomatonGroup < Automaton
+  class MatchingGroup < Matching
     attr_accessor :max_length
 
     def initialize(acceptor)
@@ -198,11 +198,11 @@ class MyRegex
     end
   end
 
-  class ZeroOrMoreAcceptor < AutomatonGroup
+  class ZeroOrMoreGreedy < MatchingGroup
     self.matches_required 0
   end
 
-  class LazyQuantifier < AutomatonGroup
+  class LazyQuantifier < MatchingGroup
     def initialize(*)
       super
       @max_length = @acceptor.matches_required
@@ -220,7 +220,7 @@ class MyRegex
     end
   end
 
-  class ZeroOrOneAcceptor < AutomatonGroup
+  class ZeroOrOneGreedy < MatchingGroup
     self.matches_required 0
 
     def initialize(*)
@@ -229,7 +229,7 @@ class MyRegex
     end
   end
 
-  class OneOrMoreAcceptor < AutomatonGroup
+  class OneOrMoreGreedy < MatchingGroup
     self.matches_required 1
   end
 end
