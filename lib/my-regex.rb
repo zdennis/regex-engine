@@ -1,6 +1,8 @@
+# encoding: utf-8
+
 class MyRegex
   def initialize(pattern)
-    @acceptors = []
+    @patterns = []
 
     # strip out leading/trailing slashes
     @pattern = pattern[1..-2]
@@ -21,12 +23,14 @@ class MyRegex
 
     while pattern.length > 0 && pindex < pattern.length
       char = pattern[pindex]
+      prev_acceptor = @patterns.last
 
-      if acceptor_klass=wrap_previous_acceptor_map[char]
-        prev_acceptor = @acceptors.last
-        @acceptors[-1] = acceptor_klass.new(prev_acceptor)
+      if prev_acceptor.is_a?(AutomatonGroup) && char == "?"
+        @patterns[-1] = LazyQuantifier.new(prev_acceptor)
+      elsif acceptor_klass=wrap_previous_acceptor_map[char]
+        @patterns[-1] = acceptor_klass.new(prev_acceptor)
       elsif acceptor_klass=add_acceptor_map[char]
-        @acceptors << acceptor_klass.new(char)
+        @patterns << acceptor_klass.new(char)
       end
 
       next_index = pindex + 1          
@@ -36,7 +40,7 @@ class MyRegex
   end
 
   def add_acceptor_map
-    @add_acceptor_map ||= Hash.new(SingleCharacterAcceptor).merge("." => AnyCharacterAcceptor)
+    @add_acceptor_map ||= Hash.new(SingleCharacterAcceptor).merge("." => WildcardAcceptor)
   end
 
   def wrap_previous_acceptor_map
@@ -48,71 +52,63 @@ class MyRegex
   end
 
   def match(str)
-    str4match = str.dup
-    acceptor_stack = @acceptors.dup
-    accepted_stack = []
+    offset = nil
     sindex = 0
-    offset = 0
+    pindex = 0
 
-    tried_states = []
+    patterns_to_match = @patterns.dup
 
-    loop do
-      acceptor = acceptor_stack.first
-      str4match = str[sindex..-1]
-      puts "str4match: #{str4match.inspect} #{acceptor.inspect}" if ENV["DEBUG"]
+    stack = []
 
-      possible_match_state = [sindex, acceptor, (acceptor && acceptor.retry_length)]
+    loop do 
+      exhausted = (stack.empty? && sindex >= str.length) || pindex >= @patterns.length
+      break if exhausted
 
-      if accepted_stack.length == 0
-        offset = sindex
-      end
+      str2match = str[sindex..-1]
+      pattern = patterns_to_match[pindex]
 
-      if str4match.nil? || tried_states.include?(possible_match_state)
-        return false 
-      end
-      tried_states << possible_match_state
-
-      if acceptor.match(str4match, acceptor.retry_length)
-        puts "  matched at #{sindex}, #{acceptor.matched_length}" if ENV["DEBUG"]
-        tried_states << possible_match_state
-        sindex += acceptor.matched_length
-        accepted_stack.push acceptor
-        acceptor_stack = acceptor_stack[1..-1]
-      elsif accepted_stack.empty?
-        puts "  not matched (stack empty, move forward one character)" if ENV["DEBUG"]
-        sindex += 1
+      if md=pattern.match(str2match)
+        stack << OpenStruct.new(:pindex => pindex, :sindex => sindex) if pattern.can_match_again?
+        offset = sindex if offset.nil?
+        sindex += md.length
+        pindex += 1
+        puts "Matched: #{str.sub(/(.{#{sindex}})(.*)/, '\1ˍ\2')} against #{@pattern.sub(/(.{#{pindex}})(.*)/, '\1ˍ\2')}" if ENV["DEBUG"]
+      elsif stack.any?
+        puts " --> rolling back" if ENV["DEBUG"]
+        last_match = stack.pop
+        pindex = last_match.pindex
+        sindex = last_match.sindex
       else
-        puts "  not matched resetting" if ENV["DEBUG"] 
-        acceptor_stack = [accepted_stack.pop].concat(acceptor_stack)
-        accepted_stack = accepted_stack #[0..-2] || []
-
-        puts "  try again: #{sindex} to #{sindex - acceptor_stack.first.matched_length}" if ENV["DEBUG"]
-        sindex -= acceptor_stack.first.matched_length
+        sindex += 1
+        pindex = 0
+        offset = nil
+        puts "No match #{str.sub(/(.{#{sindex}})(.*)/, '\1ˍ\2')} against #{@pattern.sub(/(.{#{pindex}})(.*)/, '\1ˍ\2')}" if ENV["DEBUG"]
       end
+    end
 
-      puts "sindex (#{sindex} of #{str.length})" if ENV["DEBUG"]
-
-      if acceptor_stack.empty?
-        return MatchData.new(offset)
-      elsif str4match.nil? || sindex > str.length
-        return nil
-      end
+    if pindex >= @patterns.length
+      MatchData.new(:offset => offset, :length => sindex - offset)
     end
   end
 
   class MatchData
-    attr_reader :offset
+    attr_reader :offset, :length
 
-    def initialize(offset)
-      @offset = offset
+    def initialize(options)
+      @offset = options[:offset]
+      @length = options[:length]
     end
   end
 
   class Automaton
-    attr_reader :matched_at, :matched_length
+    attr_reader :matched_at, :matched_length, :max_length
 
     def self.matches_required(*args)
       args.any? ? @matches_required = args.first : @matches_required
+    end
+
+    def can_match_again?
+      max_length >= matches_required
     end
 
     def matches_required
@@ -121,6 +117,7 @@ class MyRegex
 
     def initialize(pattern)
       @pattern = pattern
+      @max_length = 0
     end
 
     def match(str, max_length)
@@ -139,64 +136,61 @@ class MyRegex
   class SingleCharacterAcceptor < Automaton
     self.matches_required 1
 
-    def match(str, max_length=nil)
+    def match(str)
       # if max_length is 0 then we'll never match because there's nothing
       # to match on. If max_length is greater than 1, than we'll never match
       # because we only ever match on a single character.
-      if max_length == 0 || max_length > 1
-        @matched_at = 0
-        @matched_length = nil
-        false
-      elsif str[0] == @pattern[0]
-        @matched_at = 0
-        @matched_length = 1
-        true
-      else
-        @matched_at = 0
-        @matched_length = nil
-        false        
+      if str && str[0] == @pattern[0]
+        MatchData.new :offset => 0, :length => 1
       end
     end
   end
 
-  class AnyCharacterAcceptor < Automaton
+  class WildcardAcceptor < Automaton
     self.matches_required 1
 
-    def match(str, max_length=nil)
-      if max_length == 0
-        @matched_length = 0
-      else
-        (str.length > 0).tap do
-          @matched_at = 0
-          @matched_length = 1
-        end
+    def match(str)
+      if str.length > 0
+        MatchData.new :offset => 0, :length => 1
       end
     end
   end
 
   class AutomatonGroup < Automaton
+    attr_accessor :max_length
+
     def initialize(acceptor)
-      @acceptor = acceptor
+      @acceptor   = acceptor
+      @max_length = -1
     end
 
-    def match(str, max_length)
+    def match(str, max_length=@max_length)
+      str2match = str[0..-1]
       @matched_length = 0
-      @number_of_times_matched = 0      
+      @number_of_times_matched = 0
 
-      puts "  --> #{self.class.name}  #{str.inspect} #{max_length}" if ENV["DEBUG"]
-      
-      if max_length == -1 || (max_length && max_length > 0)
-        while @acceptor.match(str, max_length)
+      if max_length == -1 || max_length > 0
+        loop do
+          md = @acceptor.match(str2match)
+          break if md.nil?
+
           @number_of_times_matched += 1
-          @matched_length += @acceptor.matched_length.to_i
-          str = str[1..-1]
+          @matched_length += md.length
+          str2match = str2match[1..-1]
 
-          break if max_length && @matched_length == max_length
+          break if @matched_length == max_length
         end
       end
 
-      @matched_at = 0 if @number_of_times_matched > 0
-      matches_required <= @number_of_times_matched
+      met_minimum_match = matches_required <= @number_of_times_matched
+      if met_minimum_match
+        @matched_at = 0
+        @max_length = @number_of_times_matched - 1
+        MatchData.new :offset => @matched_at, :length => @number_of_times_matched
+      else 
+        @max_length = 0
+        nil
+      end
     end
 
     def to_s
@@ -208,34 +202,30 @@ class MyRegex
     self.matches_required 0
   end
 
+  class LazyQuantifier < AutomatonGroup
+    def initialize(*)
+      super
+      @max_length = @acceptor.matches_required
+    end
+
+    def match(str)
+      return nil if @max_length > str.length
+      @acceptor.match(str, @max_length).tap do
+        @max_length += 1
+      end
+    end
+
+    def matches_required
+      @acceptor.matches_required
+    end
+  end
+
   class ZeroOrOneAcceptor < AutomatonGroup
     self.matches_required 0
 
     def initialize(*)
       super
-      @retry_length = @acceptor.matches_required
-    end
-
-    def match(str, max_length)
-      @matched_length = 0
-      @number_of_times_matched = 0
-      @retry_length += 1
-
-      puts "  --| accept zero or one: #{str.inspect} #{max_length}" if ENV["DEBUG"]
-
-      if max_length == -1 || (max_length && max_length > 0)
-        if @acceptor.match(str, max_length)
-          @number_of_times_matched += 1
-          @matched_length += @acceptor.matched_length.to_i
-        end
-      end
-
-      @matched_at = 0 if @number_of_times_matched > 0
-      matches_required <= @number_of_times_matched
-    end
-
-    def retry_length
-      @retry_length
+      @max_length = 1
     end
   end
 
