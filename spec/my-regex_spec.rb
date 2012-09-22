@@ -45,6 +45,17 @@ describe "regex matching" do
   end
 
   describe "0 or more occurrences" do
+    describe "/a.*ca.*c/" do
+      should_match "acabc", :at => 0
+      should_match "abcac", :at => 0
+      should_match "acac", :at => 0
+      should_match "abcabc", :at => 0
+      should_match "zyxabcabbbbbbcabc", :at => 3
+      
+      should_not_match "abcc"
+      should_not_match "abcabd"
+    end    
+
     describe "/a.*c/" do
       should_match "ac", :at => 0
       should_match "abc", :at => 0
@@ -75,6 +86,17 @@ describe "regex matching" do
   end
 
   describe "1 or more occurrences" do
+    describe "/a.+ca.+c/" do
+      should_match "abcabc", :at => 0
+      should_match "zyxabcabbbbbbcabc", :at => 3
+
+      should_not_match "acabc"
+      should_not_match "abcac"
+      should_not_match "acac"
+      should_not_match "abcc"
+      should_not_match "abcabd"
+    end    
+
     describe "/a.+c/" do
       should_match "abc", :at => 0
       should_match "abbc", :at => 0
