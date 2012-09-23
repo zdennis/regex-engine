@@ -4,6 +4,10 @@ describe "regex matching" do
   subject(:regex_engine) { MyRegex.new(pattern) }
   let(:pattern){ example.example_group.description }
 
+  def self.pattern(str, &blk)
+    describe str, &blk
+  end
+
   def self.should_match(str, options)
     it "matches #{str.inspect}" do
       md = regex_engine.match(str)
@@ -19,14 +23,14 @@ describe "regex matching" do
     end
   end
 
-  describe "/a/" do
+  pattern "/a/" do
     should_match "a", :at => 0, :length => 1
 
     should_not_match ""
     should_not_match "b"
   end
 
-  describe "/abc/" do
+  pattern "/abc/" do
     should_match "abc", :at => 0, :length => 3
     should_match "zabc", :at => 1, :length => 3
 
@@ -35,7 +39,7 @@ describe "regex matching" do
     should_not_match "ab."
   end
 
-  describe "/a.c/" do
+  pattern "/a.c/" do
     should_match "abc", :at => 0, :length => 3
     should_match "zabc", :at => 1, :length => 3
     should_match "zadcasdf", :at => 1, :length => 3
@@ -46,7 +50,7 @@ describe "regex matching" do
   end
 
   describe "0 or more occurrences" do
-    describe "/a.*ca.*c/" do
+    pattern "/a.*ca.*c/" do
       should_match "acabc", :at => 0, :length => 5
       should_match "abcac", :at => 0, :length => 5
       should_match "acac", :at => 0, :length => 4
@@ -57,7 +61,7 @@ describe "regex matching" do
       should_not_match "abcabd"
     end    
 
-    describe "/a.*c/" do
+    pattern "/a.*c/" do
       should_match "ac", :at => 0, :length => 2
       should_match "abc", :at => 0, :length => 3
       should_match "abbc", :at => 0, :length => 4
@@ -73,14 +77,14 @@ describe "regex matching" do
     end
 
     describe "lazy matches" do
-      describe "/<.*?>/" do
+      pattern "/<.*?>/" do
         should_match "<>", :at => 0, :length => 2
         should_match "<em>foo", :at => 0, :length => 4
         should_match "<em>foo</em>", :at => 0, :length => 4
       end    
     end
 
-    describe "/ab*c/" do
+    pattern "/ab*c/" do
       should_match "abc", :at => 0, :length => 3
       should_match "abbbbbbbbbbbbc", :at => 0, :length => 14
       should_match "zacasdfacg", :at => 1, :length => 2
@@ -93,7 +97,7 @@ describe "regex matching" do
   end
 
   describe "1 or more occurrences" do
-    describe "/a.+ca.+c/" do
+    pattern "/a.+ca.+c/" do
       should_match "abcabc", :at => 0, :length => 6
       should_match "zyxabcabbbbbbcabc", :at => 3, :length => 14
 
@@ -104,7 +108,7 @@ describe "regex matching" do
       should_not_match "abcabd"
     end    
 
-    describe "/a.+c/" do
+    pattern "/a.+c/" do
       should_match "abc", :at => 0, :length => 3
       should_match "abbc", :at => 0, :length => 4
       should_match "zabdddddc", :at => 1, :length => 8
@@ -115,7 +119,7 @@ describe "regex matching" do
       should_not_match "abddddd"
     end
 
-    describe "/ab+c/" do
+    pattern "/ab+c/" do
       should_match "abc", :at => 0, :length => 3
       should_match "abbbbbbbbbbbbc", :at => 0, :length => 14
       should_match "abbc", :at => 0, :length => 4
@@ -127,13 +131,13 @@ describe "regex matching" do
       should_not_match "abddddd"
     end
 
-    describe "/<.+>/" do
+    pattern "/<.+>/" do
       should_match "<em>foo", :at => 0, :length => 4
       should_match "<em>foo</em>", :at => 0, :length => 12
     end 
 
     describe "lazy matches" do
-      describe "/<.+?>/" do
+      pattern "/<.+?>/" do
         should_match "<e>", :at => 0, :length => 3
         should_match "<em>foo", :at => 0, :length => 4
         should_match "<em>foo</em>", :at => 0, :length => 4
@@ -144,7 +148,7 @@ describe "regex matching" do
   end
 
   describe "0 or 1 occurrence" do
-    describe "/ab?c/" do
+    pattern "/ab?c/" do
       should_match "ac", :at => 0, :length => 2
       should_match "abc", :at => 0, :length => 3
 
@@ -152,20 +156,20 @@ describe "regex matching" do
     end
 
     describe "greedy matches" do
-      describe "/ab?bb/" do
+      pattern "/ab?bb/" do
         should_match "abbb", :at => 0, :length => 4
       end
     end
 
     describe "lazy matches" do
-      describe "/ab??bb/" do
+      pattern "/ab??bb/" do
         should_match "abbb", :at => 0, :length => 3
       end
     end
   end
 
   describe "mixing modifiers" do
-    describe "/a+bc*d/" do
+    pattern "/a+bc*d/" do
       should_match "abcd", :at => 0, :length => 4
       should_match "aaaabcd", :at => 0, :length => 7
       should_match "aaaabccccccccd", :at => 0, :length => 14
@@ -175,7 +179,7 @@ describe "regex matching" do
       should_not_match "aaabbbbbcd"
     end
 
-    describe "/a*.c+d/" do
+    pattern "/a*.c+d/" do
       should_match "abcd", :at => 0, :length => 4
       should_match "aaaabcd", :at => 0, :length => 7
       should_match "aaaabccccccccd", :at => 0, :length => 14
