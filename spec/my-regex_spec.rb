@@ -145,10 +145,22 @@ describe "regex matching" do
 
   describe "0 or 1 occurrence" do
     describe "/ab?c/" do
-      should_match "abc", :at => 0, :length => 3
       should_match "ac", :at => 0, :length => 2
+      should_match "abc", :at => 0, :length => 3
 
       should_not_match "abbc"
+    end
+
+    describe "greedy matches" do
+      describe "/ab?bb/" do
+        should_match "abbb", :at => 0, :length => 4
+      end
+    end
+
+    describe "lazy matches" do
+      describe "/ab??bb/" do
+        should_match "abbb", :at => 0, :length => 3
+      end
     end
   end
 
