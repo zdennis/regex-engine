@@ -16,6 +16,10 @@ class MyRegex
     end
   end
 
+  def match(str)
+    _match(str)
+  end
+
   private
 
   def compile(pattern)
@@ -51,7 +55,7 @@ class MyRegex
     }
   end
 
-  def match(str)
+  def _match(str)
     offset = nil
     sindex = 0
     pindex = 0
