@@ -1,13 +1,13 @@
 # encoding: utf-8
 
 class MyRegex
-  def initialize(pattern, sub=false)
+  def initialize(pattern, options={})
     @patterns = []
-    @sub = sub
+    @sub = options[:sub]
+    @capturing = options[:capturing] || !options.has_key?(:capturing)
 
     # strip out leading/trailing slashes
-    @pattern = sub ? pattern : pattern[1..-2] 
-
+    @pattern = @sub ? pattern : pattern[1..-2] 
     puts "Compiling: #{@pattern.inspect}" if ENV["DEBUG"]
     compile @pattern
   end
@@ -36,6 +36,13 @@ class MyRegex
       prev_acceptor = @patterns.last
 
       if begin_subexpression?(char)
+        if pattern[pindex+1..pindex+2] == "?:"
+          pindex += 2
+          capturing = false
+        else
+          capturing = true
+        end
+
         subpattern= ""
         nested_count = 0
         loop do
@@ -46,7 +53,7 @@ class MyRegex
           nested_count -= 1 if end_subexpression?(char)
           subpattern << pattern[pindex]
         end
-        @patterns << MyRegex.new(subpattern, true)
+        @patterns << MyRegex.new(subpattern, :sub => true, :capturing => capturing)
       elsif is_lazy?(prev_acceptor, char)
         @patterns[-1] = LazyQuantifier.new(prev_acceptor)
       elsif acceptor_klass=wrap_previous_acceptor_map[char]
@@ -104,7 +111,7 @@ class MyRegex
 
       if md=pattern.match(str2match)
         stack << OpenStruct.new(:pindex => pindex, :sindex => sindex) if pattern.can_match_again?
-        captures.concat md.captures
+        captures.concat md.captures if @capturing
         offset = md.offset + sindex if offset.nil?
         sindex += md.offset + md.length
         pindex += 1
@@ -124,8 +131,9 @@ class MyRegex
     end
 
     if pindex >= @patterns.length
-      if @sub
-        captures = [str[offset..sindex - 1]].concat captures
+      if @sub && @capturing
+        entire_match = str[offset..sindex - 1]
+        captures = [entire_match].concat captures
       end
       MatchData.new(:offset => offset, :length => sindex - offset, :captures => captures)
     end
@@ -203,15 +211,22 @@ class MyRegex
       str2match = str[0..-1]
       matched_length = 0
       number_of_times_matched = 0
+      captures = []
 
       if max_length == -1 || max_length > 0
         loop do
+          last_capture = captures.pop
           md = @pattern.match(str2match)
-          break if md.nil?
 
-          number_of_times_matched += 1
-          matched_length += md.length
-          str2match = str2match[1..-1]
+          if md.nil?
+            captures.replace [last_capture] if @pattern.is_a?(MyRegex)
+            break
+          else
+            captures.replace md.captures
+            number_of_times_matched += 1
+            matched_length += md.length
+            str2match = str2match[1..-1]
+          end
 
           break if matched_length == max_length
         end
@@ -221,7 +236,7 @@ class MyRegex
       if met_minimum_match
         @matched_at = 0
         @max_length = number_of_times_matched - 1
-        MatchData.new :offset => 0, :length => number_of_times_matched
+        MatchData.new :offset => 0, :length => number_of_times_matched, :captures => captures
       else 
         @max_length = 0
         nil

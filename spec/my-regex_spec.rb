@@ -192,33 +192,58 @@ describe "regex matching" do
   end
 
   describe "sub-expressions" do
-    pattern "/(abc)/" do
-     should_match "abc", :at => 0, :length => 3, :captures => ["abc"]
+    pattern "/(abc)?c/" do
+      should_match "c", :at => 0, :length => 3, :captures => []
       should_match "cabc", :at => 1, :length => 3, :captures => ["abc"]
-      should_match "cabcabc", :at => 1, :length => 3, :captures => ["abc"]
 
       should_not_match "bbc"
     end
 
-    pattern "/(abc)(abc)/" do
-      should_match "abcabc", :at => 0, :length => 6, :captures => ["abc", "abc"]
+    describe "capture groups" do
+      pattern "/(abc)/" do
+        should_match "abc", :at => 0, :length => 3, :captures => ["abc"]
+        should_match "cabc", :at => 1, :length => 3, :captures => ["abc"]
+        should_match "cabcabc", :at => 1, :length => 3, :captures => ["abc"]
+
+        should_not_match "bbc"
+      end
+
+      pattern "/(abc)(abc)/" do
+        should_match "abcabc", :at => 0, :length => 6, :captures => ["abc", "abc"]
+      end
+
+      describe "/(.*?b)a/" do
+        should_match "aabab", :at => 0, :length => 4, :captures => ["aab"]
+        should_match "abcdefaba", :at => 0, :length => 9, :captures => ["abcdefab"]
+      end
+
+      describe "/bo(b.)mb/" do
+        should_match "yabobombastic", :at => 2, :length => 6, :captures => ["bo"]
+        should_match "bobomb", :at => 0, :length => 6, :captures => ["bo"]
+      end
+
+      context "optional" do
+        describe "/bo(b.)?(mb)/" do
+          should_match "bomb", :at => 0, :length => 4, :captures => [nil, "mb"]
+          should_match "bobomb", :at => 0, :length => 6, :captures => ["bo", "mb"] 
+        end
+      end
+
+      describe "/he(l+(o)) world/", current: true do
+        should_match "hello world", :at => 0, :length => 11, :captures => ["llo", "o"]
+        should_match "helllllo world", :at => 0, :length => 14, :captures => ["lllllo", "o"]
+      end
     end
 
-    describe "/(.*?b)a/" do
-      should_match "aabab", :at => 0, :length => 4, :captures => ["aab"]
-      should_match "abcdefaba", :at => 0, :length => 9, :captures => ["abcdefab"]
-    end
+    describe "non-capture groups" do
+      pattern "/(?:abc)/" do
+        should_match "abc", :at => 0, :length => 3, :captures => []
+        should_match "cabc", :at => 1, :length => 3, :captures => []
+        should_match "cabcabc", :at => 1, :length => 3, :captures => []
 
-    describe "/bo(b.)mb/" do
-      should_match "yabobombastic", :at => 2, :length => 6, :captures => ["bo"]
-      should_match "bobomb", :at => 0, :length => 6, :captures => ["bo"]
+        should_not_match "bbc"
+      end
     end
-
-    describe "/he(l+(o)) world/", current: true do
-      should_match "hello world", :at => 0, :length => 11, :captures => ["llo", "o"]
-      should_match "helllllo world", :at => 0, :length => 14, :captures => ["lllllo", "o"]
-    end
-
   end
 
 end
