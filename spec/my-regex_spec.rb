@@ -4,8 +4,8 @@ describe "regex matching" do
   subject(:regex_engine) { MyRegex.new(pattern) }
   let(:pattern){ example.example_group.description }
 
-  def self.pattern(str, &blk)
-    describe str, &blk
+  def self.pattern(*args, &blk)
+    describe *args, &blk
   end
 
   def self.should_match(str, options)
@@ -13,6 +13,7 @@ describe "regex matching" do
       md = regex_engine.match(str)
       md.offset.should eq(options[:at])
       md.length.should eq(options[:length]) if options[:length]
+      md.captures.should eq(options[:captures]) if options[:captures]
     end
   end
 
@@ -188,6 +189,36 @@ describe "regex matching" do
       should_not_match "aaaabd"
       should_not_match "aaabbbbbcd"
     end
+  end
+
+  describe "sub-expressions" do
+    pattern "/(abc)/" do
+     should_match "abc", :at => 0, :length => 3, :captures => ["abc"]
+      should_match "cabc", :at => 1, :length => 3, :captures => ["abc"]
+      should_match "cabcabc", :at => 1, :length => 3, :captures => ["abc"]
+
+      should_not_match "bbc"
+    end
+
+    pattern "/(abc)(abc)/" do
+      should_match "abcabc", :at => 0, :length => 6, :captures => ["abc", "abc"]
+    end
+
+    describe "/(.*?b)a/" do
+      should_match "aabab", :at => 0, :length => 4, :captures => ["aab"]
+      should_match "abcdefaba", :at => 0, :length => 9, :captures => ["abcdefab"]
+    end
+
+    describe "/bo(b.)mb/" do
+      should_match "yabobombastic", :at => 2, :length => 6, :captures => ["bo"]
+      should_match "bobomb", :at => 0, :length => 6, :captures => ["bo"]
+    end
+
+    describe "/he(l+(o)) world/", current: true do
+      should_match "hello world", :at => 0, :length => 11, :captures => ["llo", "o"]
+      should_match "helllllo world", :at => 0, :length => 14, :captures => ["lllllo", "o"]
+    end
+
   end
 
 end

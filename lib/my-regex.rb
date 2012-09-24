@@ -1,12 +1,14 @@
 # encoding: utf-8
 
 class MyRegex
-  def initialize(pattern)
+  def initialize(pattern, sub=false)
     @patterns = []
+    @sub = sub
 
     # strip out leading/trailing slashes
-    @pattern = pattern[1..-2]
+    @pattern = sub ? pattern : pattern[1..-2] 
 
+    puts "Compiling: #{@pattern.inspect}" if ENV["DEBUG"]
     compile @pattern
   end
 
@@ -20,6 +22,10 @@ class MyRegex
     _match(str)
   end
 
+  def can_match_again?
+    @patterns.detect{ |p| p.can_match_again? }
+  end
+
   private
 
   def compile(pattern)
@@ -29,7 +35,19 @@ class MyRegex
       char = pattern[pindex]
       prev_acceptor = @patterns.last
 
-      if prev_acceptor.is_a?(MatchingGroup) && char == "?"
+      if begin_subexpression?(char)
+        subpattern= ""
+        nested_count = 0
+        loop do
+          pindex += 1
+          char = pattern[pindex]
+          nested_count += 1 if begin_subexpression?(char)
+          break if (end_subexpression?(char) && nested_count == 0) || pindex >= pattern.length
+          nested_count -= 1 if end_subexpression?(char)
+          subpattern << pattern[pindex]
+        end
+        @patterns << MyRegex.new(subpattern, true)
+      elsif is_lazy?(prev_acceptor, char)
         @patterns[-1] = LazyQuantifier.new(prev_acceptor)
       elsif acceptor_klass=wrap_previous_acceptor_map[char]
         @patterns[-1] = acceptor_klass.new(prev_acceptor)
@@ -47,6 +65,18 @@ class MyRegex
     @add_acceptor_map ||= Hash.new(Character).merge("." => Wildcard)
   end
 
+  def begin_subexpression?(char)
+    char == "("
+  end
+
+  def end_subexpression?(char)
+    char == ")"
+  end
+
+  def is_lazy?(acceptor, char)
+    acceptor.is_a?(MatchingGroup) && char == "?"    
+  end
+
   def wrap_previous_acceptor_map
     @wrap_previous_acceptor_map ||= {
       "?" => ZeroOrOneGreedy, 
@@ -61,6 +91,7 @@ class MyRegex
     pindex = 0
 
     patterns_to_match = @patterns.dup
+    captures = []
 
     stack = []
 
@@ -73,13 +104,15 @@ class MyRegex
 
       if md=pattern.match(str2match)
         stack << OpenStruct.new(:pindex => pindex, :sindex => sindex) if pattern.can_match_again?
-        offset = sindex if offset.nil?
-        sindex += md.length
+        captures.concat md.captures
+        offset = md.offset + sindex if offset.nil?
+        sindex += md.offset + md.length
         pindex += 1
         puts "Matched: #{str.sub(/(.{#{sindex}})(.*)/, '\1ˍ\2')} against #{@pattern.sub(/(.{#{pindex}})(.*)/, '\1ˍ\2')}" if ENV["DEBUG"]
       elsif stack.any?
-        puts " --> rolling back" if ENV["DEBUG"]
+        puts " --> rolling back (captures.last.inspect)" if ENV["DEBUG"]
         last_match = stack.pop
+        captures.pop
         pindex = last_match.pindex
         sindex = last_match.sindex
       else
@@ -91,16 +124,20 @@ class MyRegex
     end
 
     if pindex >= @patterns.length
-      MatchData.new(:offset => offset, :length => sindex - offset)
+      if @sub
+        captures = [str[offset..sindex - 1]].concat captures
+      end
+      MatchData.new(:offset => offset, :length => sindex - offset, :captures => captures)
     end
   end
 
   class MatchData
-    attr_reader :offset, :length
+    attr_reader :offset, :length, :captures
 
     def initialize(options)
       @offset = options[:offset]
       @length = options[:length]
+      @captures = options[:captures] || []
     end
   end
 
