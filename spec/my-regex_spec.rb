@@ -60,7 +60,7 @@ describe "regex matching" do
 
       should_not_match "abcc"
       should_not_match "abcabd"
-    end    
+    end
 
     pattern "/a.*c/" do
       should_match "ac", :at => 0, :length => 2
@@ -73,7 +73,7 @@ describe "regex matching" do
       should_not_match "abddddd"
     end
 
-    describe "<.*>" do 
+    describe "<.*>" do
       should_match "<em>foo</em>", :at => 0, :length => 12
     end
 
@@ -82,7 +82,7 @@ describe "regex matching" do
         should_match "<>", :at => 0, :length => 2
         should_match "<em>foo", :at => 0, :length => 4
         should_match "<em>foo</em>", :at => 0, :length => 4
-      end    
+      end
     end
 
     pattern "/ab*c/" do
@@ -107,7 +107,7 @@ describe "regex matching" do
       should_not_match "acac"
       should_not_match "abcc"
       should_not_match "abcabd"
-    end    
+    end
 
     pattern "/a.+c/" do
       should_match "abc", :at => 0, :length => 3
@@ -135,7 +135,7 @@ describe "regex matching" do
     pattern "/<.+>/" do
       should_match "<em>foo", :at => 0, :length => 4
       should_match "<em>foo</em>", :at => 0, :length => 12
-    end 
+    end
 
     describe "lazy matches" do
       pattern "/<.+?>/" do
@@ -225,7 +225,7 @@ describe "regex matching" do
       context "optional" do
         describe "/bo(b.)?(mb)/" do
           should_match "bomb", :at => 0, :length => 4, :captures => [nil, "mb"]
-          should_match "bobomb", :at => 0, :length => 6, :captures => ["bo", "mb"] 
+          should_match "bobomb", :at => 0, :length => 6, :captures => ["bo", "mb"]
         end
       end
 

@@ -7,7 +7,7 @@ class MyRegex
     @capturing = options[:capturing] || !options.has_key?(:capturing)
 
     # strip out leading/trailing slashes
-    @pattern = @sub ? pattern : pattern[1..-2] 
+    @pattern = @sub ? pattern : pattern[1..-2]
     puts "Compiling: #{@pattern.inspect}" if ENV["DEBUG"]
     compile @pattern
   end
@@ -62,7 +62,7 @@ class MyRegex
         @patterns << acceptor_klass.new(char)
       end
 
-      next_index = pindex + 1          
+      next_index = pindex + 1
       pattern = pattern[next_index..-1]
       pindex  = 0
     end
@@ -81,14 +81,14 @@ class MyRegex
   end
 
   def is_lazy?(acceptor, char)
-    acceptor.is_a?(MatchingGroup) && char == "?"    
+    acceptor.is_a?(MatchingGroup) && char == "?"
   end
 
   def wrap_previous_acceptor_map
     @wrap_previous_acceptor_map ||= {
-      "?" => ZeroOrOneGreedy, 
+      "?" => ZeroOrOneGreedy,
       "*" => ZeroOrMoreGreedy,
-      "+" => OneOrMoreGreedy 
+      "+" => OneOrMoreGreedy
     }
   end
 
@@ -102,7 +102,7 @@ class MyRegex
 
     stack = []
 
-    loop do 
+    loop do
       exhausted = (stack.empty? && sindex >= str.length) || pindex >= @patterns.length
       break if exhausted
 
@@ -237,7 +237,7 @@ class MyRegex
         @matched_at = 0
         @max_length = number_of_times_matched - 1
         MatchData.new :offset => 0, :length => number_of_times_matched, :captures => captures
-      else 
+      else
         @max_length = 0
         nil
       end
